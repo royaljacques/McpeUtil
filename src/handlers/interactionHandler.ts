@@ -14,12 +14,9 @@ export async function loadInteractions(client: ExtendedClient) {
     for (const file of files) {
       const filePath = path.join(__dirname, '..', 'interactions', folder, file);
       const interaction = await import(filePath);
-      
       if (interaction && interaction.default && interaction.default.data.name) {
-     
         if (!client.interactions) client.interactions = new Collection();
         client.interactions.set(interaction.default.data.name, interaction.default);
-
         logger.info(`🧩 Interaction chargée (${folder}) : ${interaction.default.data.name}`);
       }
     }
