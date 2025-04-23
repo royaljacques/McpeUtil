@@ -8,4 +8,5 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.config = {
     token: process.env.TOKEN,
+    client_id: process.env.CLIENT_ID,
 };
