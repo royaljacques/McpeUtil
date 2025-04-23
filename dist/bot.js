@@ -1,17 +1,19 @@
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
-import { config } from './config';
-import { loadEvents } from './handlers/eventHandler';
-import { loadInteractions } from './handlers/interactionHandler';
-const client = new Client({
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const discord_js_1 = require("discord.js");
+const config_1 = require("./config");
+const eventHandler_1 = require("./handlers/eventHandler");
+const interactionHandler_1 = require("./handlers/interactionHandler");
+const client = new discord_js_1.Client({
     intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        discord_js_1.GatewayIntentBits.Guilds,
+        discord_js_1.GatewayIntentBits.GuildMessages,
+        discord_js_1.GatewayIntentBits.MessageContent
     ],
 });
-client.interactions = new Collection();
+client.interactions = new discord_js_1.Collection();
 (async () => {
-    await loadEvents(client);
-    await loadInteractions(client);
-    await client.login(config.token);
+    await (0, eventHandler_1.loadEvents)(client);
+    await (0, interactionHandler_1.loadInteractions)(client);
+    await client.login(config_1.config.token);
 })();

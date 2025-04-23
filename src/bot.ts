@@ -4,6 +4,7 @@ import { loadEvents } from './handlers/eventHandler';
 import { loadInteractions } from './handlers/interactionHandler';
 import { ExtendedClient } from './types/extendedClient';
 
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,

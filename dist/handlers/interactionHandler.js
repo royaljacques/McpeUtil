@@ -1,23 +1,63 @@
-import { Collection } from 'discord.js';
-import { readdirSync } from 'fs';
-import path from 'path';
-import { logger } from '../utils/logger';
-export async function loadInteractions(client) {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.loadInteractions = loadInteractions;
+const discord_js_1 = require("discord.js");
+const fs_1 = require("fs");
+const path_1 = __importDefault(require("path"));
+const logger_1 = require("../utils/logger");
+async function loadInteractions(client) {
     const folders = ['commands', 'buttons', 'modals', 'selectMenus', 'contextMenus'];
     for (const folder of folders) {
-        const files = readdirSync(path.join(__dirname, '..', 'interactions', folder)).filter(f => f.endsWith('.ts') || f.endsWith('.js'));
+        const files = (0, fs_1.readdirSync)(path_1.default.join(__dirname, '..', 'interactions', folder)).filter(f => f.endsWith('.ts') || f.endsWith('.js'));
         for (const file of files) {
-            const filePath = path.join(__dirname, '..', 'interactions', folder, file);
-            const interaction = await import(filePath);
+            const filePath = path_1.default.join(__dirname, '..', 'interactions', folder, file);
+            const interaction = await Promise.resolve(`${filePath}`).then(s => __importStar(require(s)));
             if (interaction && interaction.default && interaction.default.name) {
                 if (!client.interactions)
-                    client.interactions = new Collection();
+                    client.interactions = new discord_js_1.Collection();
                 client.interactions.set(interaction.default.name, interaction.default);
-                logger.info(`🧩 Interaction chargée (${folder}) : ${interaction.default.name}`);
+                logger_1.logger.info(`🧩 Interaction chargée (${folder}) : ${interaction.default.name}`);
             }
         }
     }
     client.on('interactionCreate', async (interaction) => {
+        var _a;
         try {
             const name = interaction.isCommand()
                 ? interaction.commandName
@@ -28,13 +68,13 @@ export async function loadInteractions(client) {
                         : null;
             if (!name)
                 return;
-            const handler = client.interactions?.get(name);
+            const handler = (_a = client.interactions) === null || _a === void 0 ? void 0 : _a.get(name);
             if (!handler)
                 return;
             await handler.execute(interaction, client);
         }
         catch (err) {
-            logger.error(`❌ Erreur interaction :`, err);
+            logger_1.logger.error(`❌ Erreur interaction :`, err);
         }
     });
 }

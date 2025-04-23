@@ -1,6 +1,5 @@
 {
-  "watch": ["src"],
-  "ext": "ts",
-  "exec": "ts-node-esm src/shard.ts",
-  "ignore": ["dist"]
-}
+    "watch": ["src"],
+    "ext": "ts",
+    "exec": "ts-node -r tsconfig-paths/register --transpile-only src/shard.ts"
+ }
