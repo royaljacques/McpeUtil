@@ -42,17 +42,18 @@ const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 const logger_1 = require("../utils/logger");
 async function loadInteractions(client) {
+    console.log("fjhiifzj");
     const folders = ['commands', 'buttons', 'modals', 'selectMenus', 'contextMenus'];
     for (const folder of folders) {
         const files = (0, fs_1.readdirSync)(path_1.default.join(__dirname, '..', 'interactions', folder)).filter(f => f.endsWith('.ts') || f.endsWith('.js'));
         for (const file of files) {
             const filePath = path_1.default.join(__dirname, '..', 'interactions', folder, file);
             const interaction = await Promise.resolve(`${filePath}`).then(s => __importStar(require(s)));
-            if (interaction && interaction.default && interaction.default.name) {
+            if (interaction && interaction.default && interaction.default.data.name) {
                 if (!client.interactions)
                     client.interactions = new discord_js_1.Collection();
-                client.interactions.set(interaction.default.name, interaction.default);
-                logger_1.logger.info(`🧩 Interaction chargée (${folder}) : ${interaction.default.name}`);
+                client.interactions.set(interaction.default.data.name, interaction.default);
+                logger_1.logger.info(`🧩 Interaction chargée (${folder}) : ${interaction.default.data.name}`);
             }
         }
     }
