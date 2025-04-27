@@ -5,7 +5,6 @@ import { logger } from '../utils/logger';
 import { ExtendedClient } from '../types/extendedClient';
 
 export async function loadInteractions(client: ExtendedClient) {
-  console.log("fjhiifzj")
   const folders = ['commands', 'buttons', 'modals', 'selectMenus', 'contextMenus'];
 
   for (const folder of folders) {
