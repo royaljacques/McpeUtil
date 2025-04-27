@@ -2,3 +2,6 @@ node_modules
 # Keep environment variables out of version control
 .env
 dist
+prisma/dev.db
+prisma/migrations/20250426103019_patch/migration.sql
+prisma/migrations/20250426112100_update_discord_config_model/migration.sql
