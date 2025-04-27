@@ -7,27 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model DiscordConfig {
   id             Int              @id @default(autoincrement())
   discordId      String           @unique
   serverName     String
   serverMcConfig ServerMcConfig[]
+  updateChannel  String?
 }
 
 model ServerMcConfig {
-  id            Int             @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   ip            String
   port          Int
   name          String
-  userId        Int             // ✅ Int au lieu de String
-  user          User            @relation(fields: [userId], references: [id])
+  userId        Int
+  user          DiscordConfig  @relation(fields: [userId], references: [id])
   playerByHours PlayerByHour[]
 }
 
 model PlayerByHour {
-  id       Int             @id @default(autoincrement())
+  id       Int            @id @default(autoincrement())
   hours    String
   player   Int
-  serverId Int             // ✅ Int au lieu de String
-  server   ServerMcConfig  @relation(fields: [serverId], references: [id])
+  serverId Int // ✅ Int au lieu de String
+  server   ServerMcConfig @relation(fields: [serverId], references: [id])
 }
