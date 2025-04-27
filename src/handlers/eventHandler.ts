@@ -19,9 +19,9 @@ export async function loadEvents(client: Client) {
         const execute = event.default.execute;
 
         if (once) {
-          client.once(eventName, (...args) => execute(...args, client));
+          client.once(event.default.name, (...args) => execute(...args, client));
         } else {
-          client.on(eventName, (...args) => execute(...args, client));
+          client.on(event.default.name, (...args) => execute(...args, client));
         }
 
         logger.info(`✅ Event chargé : ${eventName}`);
