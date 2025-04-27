@@ -3,7 +3,6 @@ import { config } from './config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Correction du chemin absolu :
 const botPath = path.join(__dirname, 'bot.js');
 
 const manager = new ShardingManager(botPath, {
