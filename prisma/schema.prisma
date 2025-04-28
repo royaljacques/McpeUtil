@@ -12,23 +12,25 @@ model DiscordConfig {
   discordId      String           @unique
   serverName     String
   serverMcConfig ServerMcConfig[]
-  updateChannel  String?
+  updateChannel  String?          // Le canal où les messages de statut sont envoyés
+  updateMessageId String?         // L'ID du message centralisé qui contient tous les statuts des serveurs
 }
 
 model ServerMcConfig {
-  id            Int            @id @default(autoincrement())
-  ip            String
-  port          Int
-  name          String
-  userId        Int
-  user          DiscordConfig  @relation(fields: [userId], references: [id])
-  playerByHours PlayerByHour[]
+  id              Int            @id @default(autoincrement())
+  ip              String
+  port            Int
+  name            String
+  userId          Int
+  user            DiscordConfig  @relation(fields: [userId], references: [id])
+  playerByHours   PlayerByHour[] 
+  type            String
 }
 
 model PlayerByHour {
   id       Int            @id @default(autoincrement())
   hours    String
   player   Int
-  serverId Int // ✅ Int au lieu de String
+  serverId Int 
   server   ServerMcConfig @relation(fields: [serverId], references: [id])
 }

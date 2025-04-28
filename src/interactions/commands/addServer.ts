@@ -4,15 +4,30 @@ import { prisma } from './../../prisma';
 export default {
   data: new SlashCommandBuilder()
     .setName('addserver')
-    .setDescription('Ajouter un serveur')
+    .setDescription('Ajouter un serveur Minecraft')
     .addStringOption(option =>
-      option.setName("name").setDescription("Nom du serveur").setRequired(true)
+      option.setName("name")
+        .setDescription("Nom du serveur")
+        .setRequired(true)
     )
     .addStringOption(option =>
-      option.setName("ip").setDescription("IP du serveur").setRequired(true)
+      option.setName("ip")
+        .setDescription("IP du serveur")
+        .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option.setName("port")
+        .setDescription("Port du serveur")
+        .setRequired(true)
     )
     .addStringOption(option =>
-      option.setName("port").setDescription("Port du serveur").setRequired(true)
+      option.setName("type")
+        .setDescription("Type du serveur")
+        .setRequired(true)
+        .addChoices(
+          { name: 'Java', value: 'java' },
+          { name: 'Bedrock', value: 'bedrock' },
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: Client) {
@@ -27,23 +42,24 @@ export default {
 
     const name = interaction.options.getString('name', true);
     const ip = interaction.options.getString('ip', true);
-    const portStr = interaction.options.getString('port', true);
-    const port = parseInt(portStr, 10);
+    const port = interaction.options.getInteger('port', true);
+    const type = interaction.options.getString('type', true); 
 
     try {
       const existingServer = await prisma.serverMcConfig.findFirst({
         where: {
           ip: ip,
-          port: port
+          port: port,
+          type: type, 
         }
       });
-      
+
       if (existingServer) {
         await interaction.reply({
-          content: `❌ Un serveur avec l'IP **${ip}** et le port **${port}** existe déjà dans la base de données.`,
+          content: `❌ Un serveur **${type.toUpperCase()}** avec l'IP **${ip}** et le port **${port}** existe déjà.`,
           ephemeral: true
         });
-        return; 
+        return;
       }
 
       let discordConfig = await prisma.discordConfig.findUnique({
@@ -64,23 +80,24 @@ export default {
           ip: ip,
           port: port,
           name: name,
+          type: type,
           userId: discordConfig.id,
         }
       });
 
       await interaction.reply({
-        content: `✅ Serveur **${name}** ajouté avec succès pour ce serveur Discord !`,
+        content: `✅ Serveur **${name}** (${type.toUpperCase()}) ajouté avec succès !`,
         ephemeral: true
       });
-      
+
       if (discordConfig.updateChannel) {
         const channel = await client.channels.fetch(discordConfig.updateChannel);
         if (channel && channel.isTextBased()) {
-          (channel as TextChannel).send(`📢 Un nouveau serveur **${name}** vient d'être ajouté à la liste !`);
+          (channel as TextChannel).send(`📢 Nouveau serveur **${name}** (${type.toUpperCase()}) ajouté à la liste !`);
         }
       } else {
         if (interaction.channel?.isTextBased()) {
-          interaction.channel.send(`⚠️ Aucun channel d'update n'est configuré. Veuillez utiliser la commande \`/setupchannel\` pour en définir un.`);
+          interaction.channel.send(`⚠️ Aucun channel d'update n'est configuré. Utilisez \`/setupchannel\` pour en définir un.`);
         }
       }
 
