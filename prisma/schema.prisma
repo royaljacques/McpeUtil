@@ -12,8 +12,8 @@ model DiscordConfig {
   discordId      String           @unique
   serverName     String
   serverMcConfig ServerMcConfig[]
-  updateChannel  String?          // Le canal où les messages de statut sont envoyés
-  updateMessageId String?         // L'ID du message centralisé qui contient tous les statuts des serveurs
+  updateChannel  String? 
+  updateMessageId String?
 }
 
 model ServerMcConfig {

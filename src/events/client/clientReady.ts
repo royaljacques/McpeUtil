@@ -1,6 +1,8 @@
 import { Client, Events, EmbedBuilder, TextChannel } from 'discord.js';
 import { prisma } from '../../prisma';
 import { logger } from '../../utils/logger';
+import { HourlyChecker } from '../../utils/date';
+import getServerInfo from '../../utils/serverPing';
 
 export default {
   name: Events.ClientReady,
@@ -25,25 +27,22 @@ export default {
 
           for (const server of config.serverMcConfig) {
             try {
-              const serverType = server.type || 'java'; 
-              const url = `https://api.mcstatus.io/v2/status/${serverType}/${server.ip}:${server.port}`;
-
-              const res = await fetch(url);
-              const data = await res.json();
+              const serverType = server.type || 'java';
+              const data = await getServerInfo(serverType, server.ip, server.port.toString())
 
               const isOnline = data && data.online !== false;
 
               fields.push({
                 name: `${isOnline ? '🛡️' : '❌'} ${server.name}`,
                 value: `IP: **${server.ip}:${server.port}** (${serverType.toUpperCase()})\n` +
-                       (isOnline
-                         ? `👥 Joueurs: ${data.players?.online || 0}/${data.players?.max || '?'}\n` +
-                           `📋 MOTD: ${data.motd?.clean || 'Aucun'}\n` +
-                           `\n` + 
-                           `--------------------\n`
-                         : `Le serveur **${server.ip}:${server.port}** est **HORS LIGNE**.\n` + 
-                           `--------------------` 
-                       ),
+                  (isOnline
+                    ? `👥 Joueurs: ${data.players?.online || 0}/${data.players?.max || '?'}\n` +
+                    `📋 MOTD: ${data.motd?.clean || 'Aucun'}\n` +
+                    `\n` +
+                    `--------------------\n`
+                    : `Le serveur **${server.ip}:${server.port}** est **HORS LIGNE**.\n` +
+                    `--------------------`
+                  ),
                 inline: false
               });
             } catch (err) {
@@ -54,7 +53,7 @@ export default {
             const embed = new EmbedBuilder()
               .setTitle("🌍 Status des serveurs Minecraft")
               .setDescription("Voici les informations sur les serveurs Minecraft que nous surveillons.")
-              .setColor("Blurple") 
+              .setColor("Blurple")
               .addFields(fields)
               .setTimestamp();
 
@@ -82,5 +81,30 @@ export default {
         console.error('❌ Erreur dans la boucle de status update', err);
       }
     }, 60 * 1000);
+
+    setInterval(async () => {
+      const CheckerHourly: boolean = HourlyChecker();
+      if (CheckerHourly) {
+        const allGuilds = await prisma.discordConfig.findMany({
+          include: {
+            serverMcConfig: true
+          }
+        });
+    
+        for (const guild of allGuilds) {
+          for (const server of guild.serverMcConfig) {
+            await prisma.playerByHour.create({
+              data: {
+                hours: new Date().getHours().toString().padStart(2, '0'), 
+                player: 0,
+                serverId: server.id
+              }
+            });
+          }
+        }
+    
+        console.log("Entrées ajoutées pour tous les serveurs à l'heure pile.");
+      }
+    }, 1000)
   }
 };
