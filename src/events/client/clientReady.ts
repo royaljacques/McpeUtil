@@ -3,7 +3,7 @@ import { prisma } from '../../prisma';
 import { logger } from '../../utils/logger';
 import { HourlyChecker } from '../../utils/date';
 import getServerInfo from '../../utils/serverPing';
-
+import { format } from 'date-fns';
 export default {
   name: Events.ClientReady,
   once: true,
@@ -17,18 +17,18 @@ export default {
           include: { serverMcConfig: true }
         });
 
-        const fields: any[] = [];
-
         for (const config of configs) {
           if (!config.updateChannel) continue;
 
           const channel = await client.channels.fetch(config.updateChannel);
           if (!channel || !channel.isTextBased()) continue;
 
+          const fields: any[] = [];
+
           for (const server of config.serverMcConfig) {
             try {
               const serverType = server.type || 'java';
-              const data = await getServerInfo(serverType, server.ip, server.port.toString())
+              const data = await getServerInfo(serverType, server.ip, server.port.toString());
 
               const isOnline = data && data.online !== false;
 
@@ -38,8 +38,7 @@ export default {
                   (isOnline
                     ? `👥 Joueurs: ${data.players?.online || 0}/${data.players?.max || '?'}\n` +
                     `📋 MOTD: ${data.motd?.clean || 'Aucun'}\n` +
-                    `\n` +
-                    `--------------------\n`
+                    `--------------------`
                     : `Le serveur **${server.ip}:${server.port}** est **HORS LIGNE**.\n` +
                     `--------------------`
                   ),
@@ -49,6 +48,7 @@ export default {
               console.error(`❌ Erreur en récupérant le status de ${server.ip}:${server.port}`, err);
             }
           }
+
           if (fields.length > 0) {
             const embed = new EmbedBuilder()
               .setTitle("🌍 Status des serveurs Minecraft")
@@ -58,53 +58,73 @@ export default {
               .setTimestamp();
 
             if (config.updateMessageId) {
-              const message = await (channel as TextChannel).messages.fetch(config.updateMessageId);
-              if (message) {
-                await message.edit({ embeds: [embed] });
-              } else {
-                const newMessage = await (channel as TextChannel).send({ embeds: [embed] });
-                await prisma.discordConfig.update({
-                  where: { id: config.id },
-                  data: { updateMessageId: newMessage.id }
-                });
+              try {
+                const message = await (channel as TextChannel).messages.fetch(config.updateMessageId);
+                if (message) {
+                  await message.edit({ embeds: [embed] });
+                  console.log(`📝 Message modifié pour le serveur ${config.serverName}`);
+                  continue;
+                }
+              } catch (err) {
+                console.warn('⛔ Message introuvable ou supprimé, envoie d\'un nouveau.', err);
               }
-            } else {
-              const newMessage = await (channel as TextChannel).send({ embeds: [embed] });
-              await prisma.discordConfig.update({
-                where: { id: config.id },
-                data: { updateMessageId: newMessage.id }
-              });
             }
+
+            const newMessage = await (channel as TextChannel).send({ embeds: [embed] });
+            await prisma.discordConfig.update({
+              where: { id: config.id },
+              data: { updateMessageId: newMessage.id }
+            });
           }
         }
       } catch (err) {
         console.error('❌ Erreur dans la boucle de status update', err);
       }
-    }, 60 * 1000);
+      console.log("update");
+    }, 5000);
+
+    let alreadyChecked = false;
 
     setInterval(async () => {
-      const CheckerHourly: boolean = HourlyChecker();
-      if (CheckerHourly) {
+      const now = new Date();
+
+      if (now.getMinutes() === 0 && !alreadyChecked) {
+        alreadyChecked = true;
+
         const allGuilds = await prisma.discordConfig.findMany({
           include: {
             serverMcConfig: true
           }
         });
-    
+
+        const hourStr = format(now, 'HH:00');
+
         for (const guild of allGuilds) {
           for (const server of guild.serverMcConfig) {
-            await prisma.playerByHour.create({
-              data: {
-                hours: new Date().getHours().toString().padStart(2, '0'), 
-                player: 0,
-                serverId: server.id
-              }
-            });
+            try {
+              const serverType = server.type || 'java';
+              const data = await getServerInfo(serverType, server.ip, server.port.toString());
+              const playerCount = data?.players?.online || 0;
+
+              await prisma.playerByHour.create({
+                data: {
+                  hours: hourStr,
+                  player: playerCount,
+                  serverId: server.id,
+                  createdAt: now
+                }
+              });
+
+            } catch (err) {
+              console.error(`Erreur en récupérant les joueurs du serveur ${server.ip}:${server.port}`, err);
+            }
           }
         }
-    
-        console.log("Entrées ajoutées pour tous les serveurs à l'heure pile.");
       }
-    }, 1000)
+
+      if (now.getMinutes() !== 0) {
+        alreadyChecked = false;
+      }
+    }, 1000 * 10);
   }
 };

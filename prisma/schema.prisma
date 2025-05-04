@@ -28,9 +28,11 @@ model ServerMcConfig {
 }
 
 model PlayerByHour {
-  id       Int            @id @default(autoincrement())
-  hours    String
-  player   Int
-  serverId Int 
-  server   ServerMcConfig @relation(fields: [serverId], references: [id])
+  id        Int            @id @default(autoincrement())
+  hours     String
+  player    Int
+  serverId  Int 
+  server    ServerMcConfig @relation(fields: [serverId], references: [id])
+  createdAt DateTime       @default(now()) // <--- Ajout
 }
+
