@@ -4,6 +4,9 @@ import { logger } from '../../utils/logger';
 import { HourlyChecker } from '../../utils/date';
 import getServerInfo from '../../utils/serverPing';
 import { format } from 'date-fns';
+import ErrorHandler from '../../handlers/errorHandler'; // Import du ErrorHandler
+import { config } from '../../config'; // Import du fichier config.ts
+
 export default {
   name: Events.ClientReady,
   once: true,
@@ -11,21 +14,25 @@ export default {
     console.log("✅ Client prêt :", client.user?.tag);
     logger.info(`✅ Connecté en tant que ${client.user?.tag}`);
 
+    const errorHandler = new ErrorHandler(client); // Instanciation du ErrorHandler avec le client
+
     setInterval(async () => {
       try {
         const configs = await prisma.discordConfig.findMany({
           include: { serverMcConfig: true }
         });
 
-        for (const config of configs) {
-          if (!config.updateChannel) continue;
+        for (const conf of configs) {
+          if (!conf.updateChannel) continue;
 
-          const channel = await client.channels.fetch(config.updateChannel);
+          const channel = await client.channels.fetch(conf.updateChannel);
           if (!channel || !channel.isTextBased()) continue;
 
           const fields: any[] = [];
 
-          for (const server of config.serverMcConfig) {
+          console.log(`🛡️ Vérification des serveurs Minecraft pour ${conf.serverName}`);
+          for (const server of conf.serverMcConfig) {
+            if (!server.ip || !server.port) continue;
             try {
               const serverType = server.type || 'java';
               const data = await getServerInfo(serverType, server.ip, server.port.toString());
@@ -45,7 +52,10 @@ export default {
                 inline: false
               });
             } catch (err) {
-              console.error(`❌ Erreur en récupérant le status de ${server.ip}:${server.port}`, err);
+              await errorHandler.handleError({
+                type: "error",
+                message: `Erreur en récupérant le status de ${server.ip}:${server.port}`
+              });
             }
           }
 
@@ -57,28 +67,35 @@ export default {
               .addFields(fields)
               .setTimestamp();
 
-            if (config.updateMessageId) {
+            if (conf.updateMessageId) {
               try {
-                const message = await (channel as TextChannel).messages.fetch(config.updateMessageId);
+                const message = await (channel as TextChannel).messages.fetch(conf.updateMessageId);
                 if (message) {
                   await message.edit({ embeds: [embed] });
-                  console.log(`📝 Message modifié pour le serveur ${config.serverName}`);
+                  console.log(`📝 Message modifié pour le serveur ${conf.serverName}`);
                   continue;
                 }
               } catch (err) {
-                console.warn('⛔ Message introuvable ou supprimé, envoie d\'un nouveau.', err);
+                await errorHandler.handleError({
+                  type: "warning",
+                  message: `Message introuvable ou supprimé pour le serveur ${conf.serverName}, envoie d'un nouveau.`
+                });
               }
             }
 
             const newMessage = await (channel as TextChannel).send({ embeds: [embed] });
             await prisma.discordConfig.update({
-              where: { id: config.id },
+              where: { id: conf.id },
               data: { updateMessageId: newMessage.id }
             });
           }
         }
       } catch (err) {
-        console.error('❌ Erreur dans la boucle de status update', err);
+        console.error("Erreur dans la boucle de status update :", err);
+        await errorHandler.handleError({
+          type: "error",
+          message: "Erreur dans la boucle de status update"
+        });
       }
       console.log("update");
     }, 5000);
@@ -116,7 +133,10 @@ export default {
               });
 
             } catch (err) {
-              console.error(`Erreur en récupérant les joueurs du serveur ${server.ip}:${server.port}`, err);
+              await errorHandler.handleError({
+                type: "error",
+                message: `Erreur en récupérant les joueurs du serveur ${server.ip}:${server.port}`
+              });
             }
           }
         }

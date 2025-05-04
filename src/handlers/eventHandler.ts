@@ -11,20 +11,27 @@ export async function loadEvents(client: Client) {
 
     for (const file of eventFiles) {
       const filePath = path.join(__dirname, '..', 'events', folder, file);
-      const event = await import(filePath);
-      const eventName = file.replace(/\.(ts|js)/, '');
 
-      if (event && event.default) {
-        const once = event.default.once;
-        const execute = event.default.execute;
+      try {
+        const event = await import(filePath);
+        if (event && event.default) {
+          const { name, once, execute } = event.default;
 
-        if (once) {
-          client.once(event.default.name, (...args) => execute(...args, client));
-        } else {
-          client.on(event.default.name, (...args) => execute(...args, client));
+          if (!name || typeof execute !== 'function') {
+            logger.error(`❌ L'événement dans le fichier ${file} est mal configuré.`);
+            continue;
+          }
+
+          if (once) {
+            client.once(name, (...args) => execute(...args, client));
+          } else {
+            client.on(name, (...args) => execute(...args, client));
+          }
+
+          logger.info(`✅ Event chargé : ${name}`);
         }
-
-        logger.info(`✅ Event chargé : ${eventName}`);
+      } catch (error) {
+        logger.error(`❌ Erreur lors du chargement de l'événement ${file}:`, error);
       }
     }
   }
