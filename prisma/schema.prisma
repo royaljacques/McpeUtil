@@ -8,14 +8,14 @@ datasource db {
 }
 
 model DiscordConfig {
-  id             Int              @id @default(autoincrement())
-  discordId      String           @unique
-  serverName     String
-  serverMcConfig ServerMcConfig[]
-  updateChannel  String? 
+  id              Int              @id @default(autoincrement())
+  discordId       String           @unique
+  serverName      String
+  serverMcConfig  ServerMcConfig[]
+  updateChannel   String?
   updateMessageId String?
+  language        String           @default("en_US") 
 }
-
 model ServerMcConfig {
   id              Int            @id @default(autoincrement())
   ip              String

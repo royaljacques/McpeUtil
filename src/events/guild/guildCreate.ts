@@ -9,9 +9,16 @@ export default {
     try {
       const discordId = guild.id;
       const serverName = guild.name;
+
       const existing = await prisma.discordConfig.findUnique({ where: { discordId } });
       if (!existing) {
-        await prisma.discordConfig.create({ data: { discordId, serverName } });
+        await prisma.discordConfig.create({
+          data: {
+            discordId,
+            serverName,
+            language: 'en_US' // 👈 Langue par défaut
+          }
+        });
         logger.info(`🆕 Serveur ajouté : ${serverName} (${discordId})`);
       } else {
         logger.warn(`⚠️ Serveur déjà en base : ${serverName} (${discordId})`);
